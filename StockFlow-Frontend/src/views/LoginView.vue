@@ -58,22 +58,17 @@
           </button>
         </form>
 
-        <!-- Divider -->
-        <div class="divider">
-          <span>ou</span>
-        </div>
-
-        <!-- Botão Registrar -->
-        <router-link to="/register" class="btn btn-outline w-full">
-          Criar Nova Conta
-        </router-link>
-
         <!-- Mensagem de Erro -->
         <div v-if="error" class="alert alert-danger mt-3">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {{ error }}
+        </div>
+
+        <!-- Link para Cadastro -->
+        <div class="auth-link mt-4">
+          <p>Não tem acesso? <router-link to="/register" class="link">Solicitar conta</router-link></p>
         </div>
       </div>
 
@@ -105,7 +100,14 @@ const handleLogin = async () => {
     await authStore.login(username.value, password.value)
     router.push('/dashboard')
   } catch (err: any) {
-    error.value = err.response?.data?.message || err.response?.data || 'Erro ao fazer login. Verifique suas credenciais.'
+    const status = err.response?.status
+    const data = err.response?.data
+
+    if (status === 401) {
+      error.value = 'Usuário ou senha incorretos. Se você criou uma conta recentemente, aguarde a aprovação do administrador.'
+    } else {
+      error.value = data?.message || data || 'Erro ao fazer login. Tente novamente.'
+    }
   } finally {
     loading.value = false
   }
@@ -263,6 +265,24 @@ const handleLogin = async () => {
   opacity: 0.9;
 }
 
+.auth-link {
+  text-align: center;
+  color: var(--gray);
+  font-size: 0.875rem;
+}
+
+.auth-link .link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.auth-link .link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
 .mini-spinner {
   width: 16px;
   height: 16px;
@@ -270,6 +290,24 @@ const handleLogin = async () => {
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.auth-link {
+  text-align: center;
+  color: var(--gray);
+  font-size: 0.875rem;
+}
+
+.auth-link .link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.auth-link .link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {

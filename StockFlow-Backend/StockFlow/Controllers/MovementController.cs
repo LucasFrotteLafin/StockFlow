@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Authorization;
 using FocusSpace.DatabaseContext;
 using FocusSpace.Models;
 using FocusSpace.Requests;
@@ -10,6 +11,7 @@ namespace FocusSpace.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [EnableCors("AllowAll")]
+    [Authorize]
     public class MovementController : ControllerBase
     {
         private readonly DataContext _context;

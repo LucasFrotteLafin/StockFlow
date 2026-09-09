@@ -9,8 +9,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <h1>Criar Conta</h1>
-          <p class="subtitle">Junte-se ao StockFlow</p>
+          <h1>StockFlow</h1>
+          <p class="subtitle">Criar Nova Conta</p>
         </div>
 
         <!-- Formulário -->
@@ -26,10 +26,9 @@
               id="username"
               v-model="username" 
               type="text" 
-              placeholder="Escolha um nome de usuário" 
+              placeholder="Escolha um usuário" 
               required
               autocomplete="username"
-              minlength="3"
             >
           </div>
 
@@ -44,28 +43,26 @@
               id="password"
               v-model="password" 
               type="password" 
-              placeholder="Mínimo 6 caracteres" 
+              placeholder="Crie uma senha" 
               required
               autocomplete="new-password"
-              minlength="6"
             >
           </div>
 
           <div class="form-group">
             <label for="confirmPassword">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Confirmar Senha
+              Confirme a Senha
             </label>
             <input 
               id="confirmPassword"
               v-model="confirmPassword" 
               type="password" 
-              placeholder="Digite a senha novamente" 
+              placeholder="Confirme a senha" 
               required
               autocomplete="new-password"
-              minlength="6"
             >
           </div>
 
@@ -78,17 +75,15 @@
           </button>
         </form>
 
-        <!-- Divider -->
-        <div class="divider">
-          <span>ou</span>
+        <!-- Mensagem de Sucesso -->
+        <div v-if="success" class="alert alert-success mt-3">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {{ success }}
         </div>
 
-        <!-- Botão Voltar -->
-        <router-link to="/login" class="btn btn-outline w-full">
-          Já tenho uma conta
-        </router-link>
-
-        <!-- Mensagens -->
+        <!-- Mensagem de Erro -->
         <div v-if="error" class="alert alert-danger mt-3">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -96,17 +91,15 @@
           {{ error }}
         </div>
 
-        <div v-if="success" class="alert alert-success mt-3">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Conta criada com sucesso! Redirecionando...
+        <!-- Link para Login -->
+        <div class="auth-link mt-4">
+          <p>Já tem conta? <router-link to="/login" class="link">Fazer login</router-link></p>
         </div>
       </div>
 
       <!-- Footer Info -->
       <div class="auth-footer">
-        <p>Ao criar uma conta, você concorda com nossos termos de uso</p>
+        <p>Versão 1.0.0</p>
       </div>
     </div>
   </div>
@@ -124,15 +117,14 @@ const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const error = ref('')
-const success = ref(false)
+const success = ref('')
 const loading = ref(false)
 
 const handleRegister = async () => {
   try {
     error.value = ''
-    success.value = false
+    success.value = ''
 
-    // Validações
     if (password.value !== confirmPassword.value) {
       error.value = 'As senhas não coincidem'
       return
@@ -143,20 +135,21 @@ const handleRegister = async () => {
       return
     }
 
-    if (username.value.length < 3) {
-      error.value = 'O nome de usuário deve ter no mínimo 3 caracteres'
-      return
-    }
-
     loading.value = true
     await authStore.register(username.value, password.value)
-    success.value = true
-    
+    // Senha enviada em texto puro — o backend criptografa automaticamente antes de salvar
+    success.value = `Solicitação enviada com sucesso! Sua conta "${username.value}" aguarda aprovação do administrador. Enquanto não for aprovada, o login não funcionará. Redirecionando para o login...`
+
+    // Limpa os campos para evitar reenvio acidental
+    username.value = ''
+    password.value = ''
+    confirmPassword.value = ''
+
     setTimeout(() => {
       router.push('/login')
-    }, 1500)
+    }, 4000)
   } catch (err: any) {
-    error.value = err.response?.data?.message || err.response?.data || 'Erro ao criar conta. Tente novamente.'
+    error.value = err.response?.data?.message || err.response?.data || 'Erro ao enviar solicitação. Tente novamente.'
   } finally {
     loading.value = false
   }
@@ -226,13 +219,13 @@ const handleRegister = async () => {
 .logo-circle {
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
   transform: rotate(-5deg);
   transition: transform 0.3s ease;
 }
@@ -249,7 +242,7 @@ const handleRegister = async () => {
 
 .auth-header h1 {
   font-size: 2.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -278,32 +271,7 @@ const handleRegister = async () => {
 .form-group label svg {
   width: 18px;
   height: 18px;
-  color: #10b981;
-}
-
-.divider {
-  position: relative;
-  text-align: center;
-  margin: 1.5rem 0;
-}
-
-.divider::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 100%;
-  height: 1px;
-  background: var(--border);
-}
-
-.divider span {
-  position: relative;
-  background: white;
-  padding: 0 1rem;
-  color: var(--gray);
-  font-size: 0.875rem;
-  font-weight: 500;
+  color: var(--primary);
 }
 
 .auth-footer {
@@ -312,6 +280,24 @@ const handleRegister = async () => {
   color: white;
   font-size: 0.875rem;
   opacity: 0.9;
+}
+
+.auth-link {
+  text-align: center;
+  color: var(--gray);
+  font-size: 0.875rem;
+}
+
+.auth-link .link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.auth-link .link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
 }
 
 .mini-spinner {

@@ -40,6 +40,16 @@
           </svg>
           Relatórios
         </router-link>
+
+        <router-link v-if="isAdmin" to="/people" class="nav-link admin-link">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Pessoas
+          <span v-if="peopleStore.pendingRequests.length > 0" class="badge-pending">
+            {{ peopleStore.pendingRequests.length }}
+          </span>
+        </router-link>
       </div>
 
       <!-- User Menu -->
@@ -62,22 +72,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { usePeopleStore } from '../stores/people'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const peopleStore = usePeopleStore()
 
 const userInitials = computed(() => {
   const username = authStore.user?.username || 'U'
   return username.substring(0, 2).toUpperCase()
 })
 
+const isAdmin = computed(() => authStore.user?.role === 'Admin')
+
 const handleLogout = () => {
   authStore.logout()
   router.push('/login')
 }
+
+onMounted(async () => {
+  if (isAdmin.value) {
+    try {
+      await peopleStore.fetchPendingRequests()
+    } catch {
+      // silencioso — navbar não deve quebrar se falhar
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -166,6 +190,37 @@ const handleLogout = () => {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.nav-link.admin-link {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  margin-left: auto;
+  position: relative;
+}
+
+.nav-link.admin-link:hover {
+  background: linear-gradient(135deg, #ffb74d 0%, #ffa726 100%);
+  color: white;
+}
+
+.badge-pending {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  line-height: 1;
 }
 
 .navbar-user {

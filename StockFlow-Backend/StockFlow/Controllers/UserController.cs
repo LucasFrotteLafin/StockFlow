@@ -5,6 +5,7 @@ using FocusSpace.DatabaseContext;
 using FocusSpace.Models;
 using FocusSpace.Requests;
 using FocusSpace.Encrypt;
+using FocusSpace.Services;
 
 namespace FocusSpace.Controllers
 {
@@ -14,31 +15,12 @@ namespace FocusSpace.Controllers
     public class UserController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly IJwtService _jwtService;
 
-        public UserController(DataContext context)
+        public UserController(DataContext context, IJwtService jwtService)
         {
             _context = context;
-        }
-
-        [HttpPost("register")]
-        public async Task<ActionResult<User>> Register(LoginRequest request)
-        {
-            var userExists = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == request.Username);
-
-            if (userExists != null)
-                return BadRequest("Usuário já existe");
-
-            var user = new User
-            {
-                Username = request.Username,
-                Password = PasswordEncryptor.Encrypt(request.Password),
-                Role = "User"
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return Ok(user);
+            _jwtService = jwtService;
         }
 
         [HttpPost("login")]
@@ -50,7 +32,8 @@ namespace FocusSpace.Controllers
             if (user == null || !PasswordEncryptor.Verify(request.Password, user.Password))
                 return Unauthorized("Credenciais inválidas");
 
-            return Ok(new LoginResponse { Id = user.Id, Username = user.Username, Role = user.Role });
+            var token = _jwtService.GenerateToken(user.Id, user.Username, user.Role);
+            return Ok(new LoginResponse { Id = user.Id, Username = user.Username, Role = user.Role, Token = token });
         }
     }
 
@@ -59,5 +42,6 @@ namespace FocusSpace.Controllers
         public int Id { get; set; }
         public required string Username { get; set; }
         public required string Role { get; set; }
+        public required string Token { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '../stores/auth'
 
 const api = axios.create({
   baseURL: 'http://localhost:5244/api',
@@ -6,29 +7,28 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
-  withCredentials: true // Necessário quando o backend usa AllowCredentials()
+  withCredentials: true
 })
 
-// Interceptor para requests
 api.interceptors.request.use(
   (config) => {
-    console.log('Making request to:', config.url)
+    const authStore = useAuthStore()
+    const token = authStore.token || sessionStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
-  (error) => {
-    console.error('Request error:', error)
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Interceptor para responses
 api.interceptors.response.use(
-  (response) => {
-    console.log('Response received:', response.status)
-    return response
-  },
+  (response) => response,
   (error) => {
-    console.error('Response error:', error.response?.status, error.response?.data)
+    if (error.response?.status === 401) {
+      const authStore = useAuthStore()
+      authStore.logout()
+    }
     return Promise.reject(error)
   }
 )

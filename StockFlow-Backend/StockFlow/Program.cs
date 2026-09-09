@@ -1,23 +1,50 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using FocusSpace.DatabaseContext;
+using FocusSpace.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar URLs
 builder.WebHost.UseUrls("http://localhost:5244");
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseNpgsql(connectionString));
 
+builder.Services.AddScoped<IJwtService, JwtService>();
+
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidateAudience = true,
+        ValidAudience = jwtSettings["Audience"],
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
 builder.Services.AddControllers();
 
-// Adicionar Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() { 
-        Title = "StockFlow API", 
+    c.SwaggerDoc("v1", new() {
+        Title = "StockFlow API",
         Version = "v1",
         Description = "API para gerenciamento de estoque"
     });
@@ -36,29 +63,26 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Habilitar Swagger sempre (para desenvolvimento)
+app.UseCors("AllowAll");
+
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "StockFlow API v1");
-    c.RoutePrefix = string.Empty; // Swagger na raiz
+    c.RoutePrefix = string.Empty;
 });
 
-// CORS deve vir ANTES de qualquer middleware que precisa dele
-app.UseCors("AllowAll");
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Aplicar migrations automaticamente (com tratamento de erro mais robusto)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     try
     {
-        // Verificar se o banco está acessível
         if (db.Database.CanConnect())
         {
             Console.WriteLine("✓ Database connection successful");
-            
-            // Tentar aplicar migrations apenas se necessário
             var pendingMigrations = db.Database.GetPendingMigrations();
             if (pendingMigrations.Any())
             {
@@ -77,12 +101,10 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"⚠ Database warning (continuing): {ex.Message}");
-        // Continuar mesmo com erro de banco para testar CORS
+        Console.WriteLine($"⚠ Migration warning (continuing): {ex.Message}");
     }
 }
 
-app.UseAuthorization();
 app.MapControllers();
 
 Console.WriteLine("🚀 Backend running at: http://localhost:5244");

@@ -11,6 +11,7 @@ namespace FocusSpace.Mappings
             builder.HasKey(u => u.Id);
             builder.Property(u => u.Username).IsRequired().HasMaxLength(50);
             builder.Property(u => u.Password).IsRequired().HasMaxLength(255);
+            builder.Property(u => u.Role).IsRequired().HasMaxLength(20);
             builder.HasIndex(u => u.Username).IsUnique();
         }
     }

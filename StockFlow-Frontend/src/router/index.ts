@@ -39,6 +39,17 @@ const routes = [
     name: 'Reports',
     component: () => import('../views/ReportsView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/people',
+    name: 'People',
+    component: () => import('../views/PeopleView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    // rota legada — redireciona para /people
+    path: '/admin',
+    redirect: '/people'
   }
 ]
 
@@ -53,7 +64,11 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     next('/login')
-  } else if ((to.path === '/login' || to.path === '/register') && authStore.isLoggedIn) {
+  } else if (to.meta.requiresAdmin && authStore.user?.role !== 'Admin') {
+    next('/dashboard')
+  } else if (to.path === '/login' && authStore.isLoggedIn) {
+    next('/dashboard')
+  } else if (to.path === '/register' && authStore.isLoggedIn) {
     next('/dashboard')
   } else {
     next()

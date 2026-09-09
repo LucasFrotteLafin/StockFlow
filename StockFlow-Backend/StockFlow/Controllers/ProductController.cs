@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Authorization;
 using FocusSpace.DatabaseContext;
 using FocusSpace.Models;
 using FocusSpace.Requests;
@@ -10,6 +11,7 @@ namespace FocusSpace.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [EnableCors("AllowAll")]
+    [Authorize]
     public class ProductController : ControllerBase
     {
         private readonly DataContext _context;
@@ -40,10 +42,10 @@ namespace FocusSpace.Controllers
         {
             var product = await _context.Products
                 .FirstOrDefaultAsync(p => p.SKU == sku);
-            
+
             if (product == null)
                 return NotFound("Produto não encontrado com este SKU");
-            
+
             return Ok(product);
         }
 
@@ -53,42 +55,32 @@ namespace FocusSpace.Controllers
             var products = await _context.Products
                 .Where(p => p.QuantityInStock < p.MinimumStock)
                 .ToListAsync();
-            
+
             return Ok(products);
         }
 
         [HttpPost]
         public async Task<ActionResult<Product>> Create(CreateProductRequest request)
         {
-            try
-            {
-                // Verificar se já existe produto com mesmo SKU
-                var existingSKU = await _context.Products
-                    .FirstOrDefaultAsync(p => p.SKU == request.SKU);
-                
-                if (existingSKU != null)
-                    return BadRequest("Já existe um produto cadastrado com este SKU");
+            var existingSKU = await _context.Products
+                .FirstOrDefaultAsync(p => p.SKU == request.SKU);
 
-                var product = new Product
-                {
-                    Name = request.Name,
-                    SKU = request.SKU,
-                    Category = request.Category,
-                    Price = request.Price,
-                    MinimumStock = request.MinimumStock,
-                    QuantityInStock = 0
-                };
+            if (existingSKU != null)
+                return BadRequest("Já existe um produto cadastrado com este SKU");
 
-                _context.Products.Add(product);
-                await _context.SaveChangesAsync();
-                return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
-            }
-            catch (Exception ex)
+            var product = new Product
             {
-                Console.WriteLine($"❌ Erro ao criar produto: {ex.Message}");
-                Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
-                return StatusCode(500, $"Erro interno: {ex.Message}");
-            }
+                Name = request.Name,
+                SKU = request.SKU,
+                Category = request.Category,
+                Price = request.Price,
+                MinimumStock = request.MinimumStock,
+                QuantityInStock = 0
+            };
+
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
         }
 
         [HttpPut("{id}")]
@@ -98,10 +90,9 @@ namespace FocusSpace.Controllers
             if (product == null)
                 return NotFound();
 
-            // Verificar se já existe outro produto com mesmo SKU
             var existingSKU = await _context.Products
                 .FirstOrDefaultAsync(p => p.SKU == request.SKU && p.Id != id);
-            
+
             if (existingSKU != null)
                 return BadRequest("Já existe outro produto cadastrado com este SKU");
 
