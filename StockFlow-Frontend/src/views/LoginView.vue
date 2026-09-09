@@ -79,7 +79,7 @@
 
       <!-- Footer Info -->
       <div class="auth-footer">
-        <p>Versão 1.0.0 • Desenvolvido com ❤️</p>
+        <p>Versão 1.0.0</p>
       </div>
     </div>
   </div>

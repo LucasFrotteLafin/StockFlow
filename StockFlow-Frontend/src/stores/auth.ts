@@ -10,7 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await api.post('/user/login', { username, password })
       user.value = response.data
-      localStorage.setItem('user', JSON.stringify(user.value))
+      sessionStorage.setItem('user', JSON.stringify(user.value))
       return response.data
     } catch (error) {
       throw error
@@ -28,11 +28,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = () => {
     user.value = null
-    localStorage.removeItem('user')
+    sessionStorage.removeItem('user')
   }
 
   const loadUser = () => {
-    const stored = localStorage.getItem('user')
+    const stored = sessionStorage.getItem('user')
     if (stored) {
       user.value = JSON.parse(stored)
     }

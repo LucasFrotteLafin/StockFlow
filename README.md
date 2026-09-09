@@ -117,7 +117,7 @@ O sistema criará automaticamente as seguintes tabelas:
 - ✅ **Login/Registro**: Sistema completo de usuários
 - ✅ **Criptografia de senhas**: Hash seguro
 - ✅ **Proteção de rotas**: Middleware de autenticação
-- ✅ **Persistência de sessão**: Storage local
+- ✅ **Sessão temporária**: sessionStorage (limpa ao fechar navegador/aba)
 
 ---
 
@@ -292,7 +292,7 @@ Este projeto foi desenvolvido como um sistema completo de gerenciamento de estoq
 - **Login** com validação de credenciais
 - **Registro** de novos usuários
 - **Proteção de rotas**: Acesso apenas para usuários autenticados
-- **Persistência de sessão**: Usuário mantido logado
+- **Sessão temporária**: Login expirado ao fechar navegador (sessionStorage)
 - **Logout** seguro
 
 ### 🎨 Interface Moderna
@@ -430,7 +430,7 @@ Edite o arquivo `StockFlow-Backend/StockFlow/appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=StockFlow;Username=seu_usuario;Password=sua_senha"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=StockFlow;Username=postgres;Password=sua_senha;Pooling=true;SSL Mode=Disable;"
   }
 }
 ```
@@ -503,6 +503,7 @@ O frontend estará disponível em: **http://localhost:5173**
 - **Senhas criptografadas**: Utilizando hash seguro
 - **Validação de dados**: No backend e frontend
 - **Proteção de rotas**: Apenas usuários autenticados
+- **Sessão temporária**: sessionStorage limpa ao fechar navegador
 - **CORS configurado**: Políticas de segurança
 - **Validação de SKU único**: Índice único no banco de dados
 
