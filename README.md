@@ -1,6 +1,6 @@
 # StockFlow
 
-Sistema web de gerenciamento de estoque com controle de produtos, movimentações, relatórios e gerenciamento de usuários com fluxo de aprovação de acesso.
+Sistema web de gerenciamento de estoque com controle de produtos e variantes (cor/tamanho), movimentações, relatórios e gerenciamento de usuários com fluxo de aprovação de acesso.
 
 ---
 
@@ -12,6 +12,7 @@ Sistema web de gerenciamento de estoque com controle de produtos, movimentaçõe
 - [Instalação e Execução](#instalação-e-execução)
 - [Configuração](#configuração)
 - [Funcionalidades](#funcionalidades)
+- [Sistema de Variantes](#sistema-de-variantes)
 - [Arquitetura](#arquitetura)
 - [Endpoints da API](#endpoints-da-api)
 - [Banco de Dados](#banco-de-dados)
@@ -22,7 +23,7 @@ Sistema web de gerenciamento de estoque com controle de produtos, movimentaçõe
 
 ## Visão Geral
 
-O StockFlow é uma aplicação fullstack composta por uma API RESTful em .NET e uma SPA em Vue 3. O sistema permite o controle completo de estoque de produtos, registro de entradas e saídas, visualização de relatórios analíticos e gerenciamento de usuários com um fluxo de aprovação de acesso controlado pelo administrador.
+O StockFlow é uma aplicação fullstack composta por uma API RESTful em .NET e uma SPA em Vue 3. O sistema permite o controle completo de estoque de produtos com suporte a variantes (cor e tamanho), registro de entradas e saídas por variante, visualização de relatórios analíticos e gerenciamento de usuários com um fluxo de aprovação de acesso controlado pelo administrador.
 
 ---
 
@@ -159,15 +160,19 @@ Senha:   admin123
 - Validação de SKU único — impede duplicatas
 - Filtros por nome, SKU, categoria e status de estoque
 - Indicador visual de estoque baixo (quando abaixo do mínimo configurado)
-- `QuantityInStock` é calculado automaticamente pelas movimentações, não editado diretamente
+- **Sistema de variantes**: cada produto pode ter múltiplas combinações de cor e tamanho
+- Interface accordion para visualizar e gerenciar variantes
+- `TotalStock` calculado automaticamente pela soma de todas as variantes
 
 ### Movimentações de Estoque
 
 - Registro de **Entrada** e **Saída** com motivo obrigatório
-- Validação de quantidade disponível em saídas
-- Estoque do produto atualizado automaticamente ao registrar a movimentação
-- Histórico completo: data, responsável, produto, tipo, quantidade e motivo
+- **Seleção de variante específica** (cor + tamanho) ao registrar movimentação
+- Validação de quantidade disponível por variante em saídas
+- Estoque da variante e total do produto atualizados automaticamente
+- Histórico completo: data, responsável, produto, variante, tipo, quantidade e motivo
 - Rastreamento do usuário que realizou cada movimentação
+- Campos opcionais: forma de pagamento e desconto percentual
 
 ### Relatórios
 
@@ -178,6 +183,51 @@ Senha:   admin123
 
 ---
 
+## Sistema de Variantes
+
+O StockFlow implementa um sistema completo de variantes de produtos:
+
+### Conceito
+
+- Cada **produto base** (ex: Casaco 2001) pode ter múltiplas **variantes**
+- Cada variante é uma combinação única de **cor** e **tamanho**
+- Tamanhos disponíveis: P, M, G, GG, G1, G2, G3, G4
+- Cada variante mantém seu próprio **estoque independente**
+
+### Funcionamento
+
+1. **Criação de Produto**: Ao adicionar um novo produto, você cria simultaneamente a primeira variante com estoque inicial
+2. **Gerenciamento de Variantes**: Na página Produtos, cada produto possui um accordion expansível onde você pode:
+   - Visualizar todas as variantes existentes
+   - Adicionar novas variantes (novas cores/tamanhos)
+   - Editar variantes existentes
+   - Excluir variantes
+3. **Estoque Total**: O campo `TotalStock` do produto é calculado automaticamente como a soma de todas as variantes
+4. **Movimentações**: Ao registrar entrada ou saída, você seleciona:
+   - O produto base
+   - A variante específica (cor + tamanho)
+   - A quantidade
+5. **Atualização Automática**: O sistema atualiza simultaneamente:
+   - O estoque da variante específica
+   - O estoque total do produto
+
+### Exemplo Prático
+
+```
+Produto: Casaco 2001
+├── Variante 1: Preto - M (15 unidades)
+├── Variante 2: Preto - GG (8 unidades)
+├── Variante 3: Bege - P (12 unidades)
+└── TotalStock: 35 unidades (soma automática)
+
+Movimentação: Saída de 5 unidades de "Preto - GG"
+Resultado:
+├── Preto - GG: 3 unidades (8 - 5)
+└── TotalStock: 30 unidades (35 - 5)
+```
+
+---
+
 ## Arquitetura
 
 ```
@@ -185,28 +235,32 @@ StockFlow/
 ├── StockFlow-Backend/
 │   └── StockFlow/
 │       ├── Controllers/
-│       │   ├── UserController.cs          # Login
-│       │   ├── UserRequestController.cs   # Solicitações de acesso
-│       │   ├── ProductController.cs       # CRUD de produtos
-│       │   └── MovementController.cs      # Movimentações
+│       │   ├── UserController.cs          
+│       │   ├── UserRequestController.cs   
+│       │   ├── ProductController.cs       
+│       │   ├── ProductVariantController.cs
+│       │   └── MovementController.cs      
 │       ├── DatabaseContext/
-│       │   ├── DataContext.cs             # DbContext e configurações EF
+│       │   ├── DataContext.cs             
 │       │   └── DesignTimeDbContextFactory.cs
 │       ├── Encrypt/
-│       │   └── PasswordEncryptor.cs       # SHA-256
+│       │   └── PasswordEncryptor.cs       
 │       ├── Mappings/
 │       │   ├── UserMap.cs
 │       │   └── ProductMap.cs
 │       ├── Migrations/
-│       │   ├── InitialCreate              # Tabelas base
-│       │   ├── AddUserInfoToMovements     # UserId e UserName em Movements
-│       │   └── AddUserRequestTable        # Tabela UserRequests
+│       │   ├── InitialCreate              
+│       │   ├── AddUserInfoToMovements     
+│       │   ├── AddUserRequestTable        
+│       │   ├── AddProductVariantsAndTotalStock
+│       │   └── AddVariantIdToMovements    
 │       ├── Models/
 │       │   ├── User.cs
 │       │   ├── UserRequest.cs
 │       │   ├── Product.cs
+│       │   ├── ProductVariant.cs
 │       │   └── Movement.cs
-│       ├── Requests/                      # DTOs de entrada
+│       ├── Requests/                      
 │       ├── Services/
 │       │   └── JwtService.cs
 │       ├── appsettings.json
@@ -215,15 +269,15 @@ StockFlow/
 └── StockFlow-Frontend/
     └── src/
         ├── api/
-        │   └── axios.ts                   # Instância Axios + interceptors JWT
+        │   └── axios.ts                   
         ├── components/
         │   └── Navbar.vue
         ├── router/
-        │   └── index.ts                   # Rotas + guards de autenticação/role
+        │   └── index.ts                   
         ├── stores/
-        │   ├── auth.ts                    # Login, logout, sessão
-        │   ├── people.ts                  # Solicitações e usuários
-        │   └── products.ts                # Estado de produtos
+        │   ├── auth.ts                    
+        │   ├── people.ts                  
+        │   └── products.ts                
         ├── views/
         │   ├── LoginView.vue
         │   ├── RegisterView.vue
@@ -231,7 +285,7 @@ StockFlow/
         │   ├── ProductsView.vue
         │   ├── MovementView.vue
         │   ├── ReportsView.vue
-        │   └── PeopleView.vue             # Somente Admin
+        │   └── PeopleView.vue             
         ├── App.vue
         └── main.ts
 ```
@@ -256,6 +310,16 @@ StockFlow/
 | `POST` | `/api/userrequest/{id}/approve` | Admin | Aprova solicitação e cria o usuário |
 | `POST` | `/api/userrequest/{id}/reject` | Admin | Rejeita solicitação |
 
+### Variantes de Produtos
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/api/productvariant/product/{productId}` | JWT | Lista variantes do produto |
+| `GET` | `/api/productvariant/{id}` | JWT | Busca variante por ID |
+| `POST` | `/api/productvariant` | JWT | Cria variante (atualiza TotalStock) |
+| `PUT` | `/api/productvariant/{id}` | JWT | Atualiza variante (sincroniza TotalStock) |
+| `DELETE` | `/api/productvariant/{id}` | JWT | Remove variante (atualiza TotalStock) |
+
 ### Produtos
 
 | Método | Rota | Auth | Descrição |
@@ -274,7 +338,7 @@ StockFlow/
 |---|---|---|---|
 | `GET` | `/api/movement` | JWT | Lista todas as movimentações |
 | `GET` | `/api/movement/product/{id}` | JWT | Movimentações de um produto |
-| `POST` | `/api/movement` | JWT | Registra entrada ou saída |
+| `POST` | `/api/movement` | JWT | Registra entrada ou saída (com variante) |
 
 ---
 
@@ -309,8 +373,19 @@ StockFlow/
 | `SKU` | `varchar(50)` | Código único |
 | `Category` | `varchar(50)` | Categoria |
 | `Price` | `decimal` | Preço unitário |
-| `QuantityInStock` | `int` | Quantidade atual |
+| `QuantityInStock` | `int` | Quantidade (compatibilidade) |
+| `TotalStock` | `int` | Soma de todas as variantes |
 | `MinimumStock` | `int` | Limite para alerta de estoque baixo |
+
+### Tabela `ProductVariants`
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `Id` | `int` | PK, auto-increment |
+| `ProductId` | `int` | FK para Products |
+| `Color` | `varchar(50)` | Cor da variante |
+| `Size` | `varchar(10)` | Tamanho (P, M, G, GG, G1, G2, G3, G4) |
+| `Stock` | `int` | Estoque específico desta variante |
 
 ### Tabela `Movements`
 
@@ -318,12 +393,16 @@ StockFlow/
 |---|---|---|
 | `Id` | `int` | PK, auto-increment |
 | `ProductId` | `int` | FK para Products |
+| `VariantId` | `int?` | FK para ProductVariants (nullable) |
 | `Quantity` | `int` | Quantidade movimentada |
 | `Type` | `text` | `Entrada` ou `Saída` |
 | `Reason` | `text` | Motivo da movimentação |
 | `MovementDate` | `timestamptz` | Data e hora |
 | `UserId` | `int` | ID do usuário responsável |
 | `UserName` | `text` | Nome do usuário (desnormalizado) |
+| `PaymentMethod` | `text?` | Forma de pagamento (opcional) |
+| `DiscountPercentage` | `decimal?` | Desconto percentual (opcional) |
+| `Status` | `text` | Status da movimentação |
 
 ---
 
